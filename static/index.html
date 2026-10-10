@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Basketry — Market Basket Analysis on Amazon Product Reviews</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <!-- Header -->
+    <header>
+      <div class="brand">Basketry</div>
+      <div class="header-actions">
+        <a href="#compare-section" class="nav-link">Algorithm Race</a>
+        <a href="#tuning-section" class="nav-link">Parameter Tuning</a>
+        <a href="#manual-section" class="nav-link">Metric Derivation</a>
+        <button class="pill" id="theme-btn" aria-label="Toggle visual theme">Switch theme</button>
+      </div>
+    </header>
+
+    <!-- Hero Title -->
+    <main>
+      <h1>
+        <span class="w"><span style="--i:0">Find</span></span>
+        <span class="w"><span style="--i:1">the</span></span>
+        <span class="w"><span style="--i:2">products</span></span>
+        <span class="w"><span style="--i:3">that</span></span>
+        <span class="w"><span style="--i:4"><i>belong</i></span></span>
+        <span class="w"><span style="--i:5">together.</span></span>
+      </h1>
+      <p class="lede">
+        Every reviewer is a basket. Basketry mines the association rules hidden in Amazon Grocery reviews using Apriori and FP-Growth, turning customer affinities into live product bundles.
+      </p>
+
+      <!-- Key Metrics Counters -->
+      <section class="stats" aria-label="Dataset and mining statistics">
+        <div><b id="stat-reviewers">0</b><span>reviewers</span></div>
+        <div><b id="stat-products">0</b><span>products</span></div>
+        <div><b id="stat-rules">0</b><span>rules mined</span></div>
+        <div><b id="stat-lift">0</b><span>strongest lift</span></div>
+        <div><b id="stat-runtime">0</b><span>mining runtime</span></div>
+      </section>
+
+      <!-- Interactive Network Graph Stage -->
+      <section class="stage" id="graph-stage">
+        <canvas id="cv" aria-label="Interactive force-directed product association graph"></canvas>
+        <div class="hint">Drag nodes. Tap any product to print its bundle receipt.</div>
+        <div class="legend">
+          <span>Weaker lift</span>
+          <i aria-hidden="true"></i>
+          <span>Stronger lift</span>
+        </div>
+        <div class="active-badge" id="active-algo-badge">Algorithm: Scratch Apriori</div>
+        <div class="receipt empty" id="receipt-card" aria-live="polite"></div>
+      </section>
+
+      <!-- Primary Control & Exploration Panels -->
+      <section class="panel-grid">
+        <!-- Panel 1: Mining Controls -->
+        <article class="card">
+          <h2>Tune the mining</h2>
+          <div class="segmented-control" role="radiogroup" aria-label="Algorithm selector">
+            <button class="seg-btn active" data-algo="scratch" role="radio" aria-checked="true">Scratch</button>
+            <button class="seg-btn" data-algo="apriori" role="radio" aria-checked="false">mlxtend Apriori</button>
+            <button class="seg-btn" data-algo="fpgrowth" role="radio" aria-checked="false">FP-Growth</button>
+          </div>
+
+          <div class="ctl">
+            <label for="slider-sup">Minimum support <b id="val-sup">3.0%</b></label>
+            <input type="range" id="slider-sup" min="1.0" max="10.0" step="0.5" value="3.0">
+          </div>
+
+          <div class="ctl">
+            <label for="slider-conf">Minimum confidence <b id="val-conf">35%</b></label>
+            <input type="range" id="slider-conf" min="15" max="85" step="5" value="35">
+          </div>
+
+          <div class="ctl">
+            <label for="slider-lift">Minimum lift <b id="val-lift">1.2x</b></label>
+            <input type="range" id="slider-lift" min="1.0" max="5.0" step="0.1" value="1.2">
+          </div>
+
+          <div class="ctl">
+            <label for="slider-rating">Count ratings of <b id="val-rating">4 stars and up</b></label>
+            <input type="range" id="slider-rating" min="1" max="5" step="1" value="4">
+          </div>
+
+          <p class="note">
+            Lower support uncovers niche pairings. Higher confidence retains only dependable rules. Rating filter ensures bundles reflect positive endorsement.
+          </p>
+        </article>
+
+        <!-- Panel 2: Upload & Dataset Management -->
+        <article class="card">
+          <h2>Bring your own data</h2>
+          <label class="drop-zone" id="drop-zone" tabindex="0" aria-label="Drop CSV file here or press Enter to choose file">
+            <span class="drop-icon" aria-hidden="true">CSV</span>
+            <span class="drop-title">Drop reviews CSV here</span>
+            <small>Auto-detects reviewer, product, and rating columns</small>
+            <input type="file" id="file-input" accept=".csv" hidden>
+          </label>
+
+          <div class="upload-buttons">
+            <button class="btn btn-outline" id="btn-load-demo">Load demo dataset (2k)</button>
+            <button class="btn btn-outline" id="btn-load-full">Load 30k sample</button>
+          </div>
+          <div class="status-box" id="upload-status" role="status">Active dataset: demo_small.csv</div>
+
+          <!-- Dataset Summary Details -->
+          <div class="summary-details" id="summary-details">
+            <div class="summary-row"><span>Total rows:</span><b id="sum-rows">—</b></div>
+            <div class="summary-row"><span>Reviewers:</span><b id="sum-reviewers">—</b></div>
+            <div class="summary-row"><span>Unique items:</span><b id="sum-products">—</b></div>
+            <div class="summary-row"><span>Null values:</span><b id="sum-nulls">—</b></div>
+            <div class="summary-row"><span>Duplicates:</span><b id="sum-dups">—</b></div>
+          </div>
+        </article>
+
+        <!-- Panel 3: Top Bundles List & Product Search -->
+        <article class="card">
+          <h2>Top product bundles</h2>
+          <div class="search-box">
+            <label for="product-search" class="sr-only">Search products</label>
+            <input type="text" id="product-search" placeholder="Search product bundles..." autocomplete="off">
+          </div>
+          <ul class="bundle-list" id="top-bundles-list" aria-label="List of highest lift product rules">
+            <!-- Populated via JavaScript -->
+          </ul>
+        </article>
+      </section>
+
+      <!-- Section: Visual Algorithm Race & Comparison -->
+      <section class="section-container" id="compare-section">
+        <div class="section-header">
+          <h2>Algorithm Race & Verification</h2>
+          <p class="section-sub">
+            All three algorithms benchmarked on the identical preprocessed dataset and parameter thresholds.
+          </p>
+        </div>
+
+        <div class="card compare-card">
+          <div class="compare-actions">
+            <button class="btn btn-primary" id="btn-run-race">Run benchmark race</button>
+            <div class="verif-tag" id="verif-tag">Equivalence: Pending</div>
+          </div>
+
+          <!-- Three Race Lanes -->
+          <div class="race-lanes">
+            <div class="lane" id="lane-scratch">
+              <div class="lane-header">
+                <span class="lane-title">Apriori from Scratch</span>
+                <span class="lane-time" id="time-scratch">— ms</span>
+              </div>
+              <div class="lane-track"><div class="lane-bar" id="bar-scratch"></div></div>
+              <div class="lane-stats">
+                <span id="items-scratch">Itemsets: —</span>
+                <span id="rules-scratch">Rules: —</span>
+              </div>
+            </div>
+
+            <div class="lane" id="lane-apriori">
+              <div class="lane-header">
+                <span class="lane-title">mlxtend Apriori</span>
+                <span class="lane-time" id="time-apriori">— ms</span>
+              </div>
+              <div class="lane-track"><div class="lane-bar" id="bar-apriori"></div></div>
+              <div class="lane-stats">
+                <span id="items-apriori">Itemsets: —</span>
+                <span id="rules-apriori">Rules: —</span>
+              </div>
+            </div>
+
+            <div class="lane" id="lane-fpgrowth">
+              <div class="lane-header">
+                <span class="lane-title">mlxtend FP-Growth</span>
+                <span class="lane-time" id="time-fpgrowth">— ms</span>
+              </div>
+              <div class="lane-track"><div class="lane-bar" id="bar-fpgrowth"></div></div>
+              <div class="lane-stats">
+                <span id="items-fpgrowth">Itemsets: —</span>
+                <span id="rules-fpgrowth">Rules: —</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="compare-explanation">
+            <h3>Why does FP-Growth scale better?</h3>
+            <p>
+              Apriori relies on the Apriori property (downward closure) and performs iterative candidate generation ($L_{k-1} \bowtie L_{k-1}$ join) followed by repeated complete passes over the database to count support. For dense datasets or lower support, candidate generation produces a combinatorial explosion of $O(2^{|I|})$ itemsets. In contrast, FP-Growth constructs a compact Frequent Pattern Tree (FP-Tree) in exactly two scans, then recursively mines conditional pattern bases using divide-and-conquer without generating candidate itemsets.
+            </p>
+          </div>
+
+          <!-- Charts Row: Scatter Plot & Top Itemsets Bar Chart -->
+          <div class="charts-row">
+            <div class="chart-box">
+              <h3>Support vs. Confidence (Colored by Lift)</h3>
+              <canvas id="chart-scatter" width="500" height="280" aria-label="Support vs Confidence scatter plot"></canvas>
+            </div>
+            <div class="chart-box">
+              <h3>Top Frequent Itemsets by Support</h3>
+              <canvas id="chart-bars" width="500" height="280" aria-label="Top frequent itemsets bar chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Hyperparameter Tuning / Sweep Heatmap -->
+      <section class="section-container" id="tuning-section">
+        <div class="section-header">
+          <h2>Hyperparameter Tuning Grid</h2>
+          <p class="section-sub">
+            Systematic parameter sweep over Support {0.5%, 1.0%, 2.0%, 3.0%} and Confidence {20%, 40%, 60%}.
+          </p>
+        </div>
+
+        <div class="card grid-card">
+          <div class="grid-layout">
+            <div class="heatmap-wrapper">
+              <table class="sweep-table" id="sweep-table" aria-label="Parameter sweep heatmap table">
+                <!-- Injected via JavaScript -->
+              </table>
+              <div class="sweep-legend">
+                <span>Fewer rules</span>
+                <div class="sweep-grad" aria-hidden="true"></div>
+                <span>More rules</span>
+              </div>
+            </div>
+            <div class="sweep-callout">
+              <h3>Parameter Justification</h3>
+              <p id="sweep-rationale">
+                Analyzing the grid reveals that at support < 1%, rule counts explode into hundreds of weak associations. At support ≥ 3% and confidence ≥ 35%, rule count stabilizes into statistically solid, actionable grocery bundles with high lift.
+              </p>
+              <div class="choice-badge">
+                Selected: <strong>Min Support = 3.0%</strong>, <strong>Min Confidence = 35%</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Worked Manual Metric Derivation -->
+      <section class="section-container" id="manual-section">
+        <div class="section-header">
+          <h2>Manual Metric Derivation</h2>
+          <p class="section-sub">
+            Step-by-step arithmetic from raw transaction counts for student evaluation and oral examination.
+          </p>
+        </div>
+
+        <div class="card manual-card">
+          <div class="manual-rule-header">
+            <span class="manual-rule-name" id="manual-rule-display">Rule: Loading...</span>
+            <button class="pill pill-sm" id="btn-next-rule">Try another rule</button>
+          </div>
+
+          <div class="manual-grid" id="manual-steps-grid">
+            <!-- Injected via JavaScript -->
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-content">
+        <div class="brand">Basketry</div>
+        <p>
+          University Machine Learning Course Project · Market Basket Analysis with Apriori & FP-Growth.
+          Dataset: McAuley Lab UCSD Amazon Reviews 2023 (Grocery and Gourmet Food).
+        </p>
+        <p class="limitation-note">
+          <strong>Limitation:</strong> Product reviews reflect customer feedback and endorsement, not point-of-sale checkout baskets. Multi-item review histories serve as an effective proxy for co-purchasing affinity.
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
