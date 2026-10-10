@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables
+.env
+.env.*
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Large / raw data downloads
+data/raw/
+
+# Agent and tool folders (never committed)
+.antigravity/
+.agent/
+.gemini/
+.claude/
+.cursor/
+.cursorrules
+AGENTS.md
+GEMINI.md
+CLAUDE.md
+
+# Scratch and planning files
+plan.md
+task.md
+walkthrough.md
+implementation_plan.md
+notes.md
+screenshot*.png
